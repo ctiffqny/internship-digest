@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
 class JobOpening(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     company: str = Field(min_length=1)
     title: str = Field(min_length=1)
     location: str | None = None
