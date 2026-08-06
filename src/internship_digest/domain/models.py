@@ -11,4 +11,6 @@ class JobOpening(BaseModel):
     location: str | None = None
     url: HttpUrl
     source: str = Field(min_length=1)
+    category: str | None = None
+    age: str | None = None
     discovered_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
