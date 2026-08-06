@@ -114,11 +114,7 @@ class SimplifyTrackerParser:
 
         company_link = cell.find("a")
 
-        company = (
-            company_link.get_text(" ", strip=True)
-            if company_link is not None
-            else text
-        )
+        company = company_link.get_text(" ", strip=True) if company_link is not None else text
 
         company = company.removeprefix("🔥").strip()
 
@@ -126,20 +122,13 @@ class SimplifyTrackerParser:
 
     @staticmethod
     def _extract_application_url(cell: Tag) -> HttpUrl | None:
-        links = [
-            str(link["href"])
-            for link in cell.find_all("a", href=True)
-        ]
+        links = [str(link["href"]) for link in cell.find_all("a", href=True)]
 
         if not links:
             return None
 
         selected_url = next(
-            (
-                link
-                for link in links
-                if "simplify.jobs/p/" not in link
-            ),
+            (link for link in links if "simplify.jobs/p/" not in link),
             links[0],
         )
 

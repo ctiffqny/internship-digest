@@ -1,51 +1,114 @@
 import sys
 
-from internship_digest.config import load_settings
+from internship_digest.config import (
+    get_runtime_directory,
+    load_settings,
+)
+from internship_digest.domain import JobOpening
 from internship_digest.sources.github import GitHubTrackerClient
 from internship_digest.sources.parser_registry import ParserRegistry
+from internship_digest.storage.sqlite import SQLiteJobRepository
 
 SAMPLE_LIMIT = 10
 
 
+def print_job(job: JobOpening) -> None:
+    """
+    Print one job in a readable format.
+
+    Keeping presentation logic in a separate function makes run() easier
+    to read and lets us replace terminal output with email HTML later.
+    """
+
+    print(f"{job.company} — {job.title}")
+    print(f"  Location: {job.location or 'Not provided'}")
+    print(f"  Category: {job.category or 'Uncategorized'}")
+    print(f"  Age: {job.age or 'Unknown'}")
+    print(f"  Apply: {job.url}")
+    print()
+
+
 def run() -> None:
+    """
+    Execute one complete internship collection cycle.
+
+    A cycle means:
+    1. Load configuration.
+    2. Fetch each tracker.
+    3. Parse jobs.
+    4. Store them.
+    5. Print only newly discovered jobs.
+    """
+
     settings = load_settings()
-    client = GitHubTrackerClient()
+
+    tracker_client = GitHubTrackerClient()
     parser_registry = ParserRegistry()
 
-    total_jobs = 0
+    database_path = get_runtime_directory() / "jobs.sqlite3"
+
+    job_repository = SQLiteJobRepository(database_path)
+    job_repository.initialize()
+
+    total_parsed_jobs = 0
+    total_new_jobs = 0
 
     for tracker in settings.github_trackers:
-        content = client.fetch_markdown(str(tracker.url))
+        content = tracker_client.fetch_markdown(str(tracker.url))
+
         parser = parser_registry.get(tracker.parser)
 
-        jobs = parser.parse(
+        parsed_jobs = parser.parse(
             content=content,
             source_name=tracker.name,
         )
 
-        total_jobs += len(jobs)
+        new_jobs = job_repository.save_many(parsed_jobs)
 
-        print(f"\nTracker: {tracker.name}")
+        total_parsed_jobs += len(parsed_jobs)
+        total_new_jobs += len(new_jobs)
+
+        print()
+        print(f"Tracker: {tracker.name}")
         print(f"Parser: {tracker.parser}")
-        print(f"Parsed jobs: {len(jobs):,}")
+        print(f"Parsed jobs: {len(parsed_jobs):,}")
+        print(f"New jobs: {len(new_jobs):,}")
         print("-" * 72)
 
-        for job in jobs[:SAMPLE_LIMIT]:
-            print(f"{job.company} — {job.title}")
-            print(f"  Location: {job.location or 'Not provided'}")
-            print(f"  Category: {job.category or 'Uncategorized'}")
-            print(f"  Age: {job.age or 'Unknown'}")
-            print(f"  Apply: {job.url}")
-            print()
+        for job in new_jobs[:SAMPLE_LIMIT]:
+            print_job(job)
 
-    print(f"Total parsed jobs: {total_jobs:,}")
+        remaining_jobs = len(new_jobs) - SAMPLE_LIMIT
+
+        if remaining_jobs > 0:
+            print(f"... and {remaining_jobs:,} more new jobs")
+
+    print()
+    print(f"Total parsed jobs: {total_parsed_jobs:,}")
+    print(f"Total new jobs: {total_new_jobs:,}")
+    print(f"Total jobs stored: {job_repository.count():,}")
 
 
 def main() -> None:
+    """
+    Command-line entry point.
+
+    RuntimeError represents expected operational errors, such as:
+    - invalid configuration;
+    - inaccessible tracker;
+    - malformed tracker response.
+
+    We show a concise message instead of exposing a large traceback to a
+    normal user.
+    """
+
     try:
         run()
     except RuntimeError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        print(
+            f"Error: {exc}",
+            file=sys.stderr,
+        )
         raise SystemExit(1) from exc
 
 
