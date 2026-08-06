@@ -1,8 +1,14 @@
 import os
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, ConfigDict, HttpUrl, ValidationError
+
+
+class ParserType(StrEnum):
+    SIMPLIFY_HTML = "simplify_html"
+    MARKDOWN_TABLE = "markdown_table"
 
 
 class GitHubTrackerConfig(BaseModel):
@@ -10,6 +16,7 @@ class GitHubTrackerConfig(BaseModel):
 
     name: str
     url: HttpUrl
+    parser: ParserType
 
 
 class Settings(BaseModel):

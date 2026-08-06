@@ -2,9 +2,9 @@ import re
 from collections.abc import Iterator
 
 from bs4 import BeautifulSoup, Tag
+from pydantic import HttpUrl
 
 from internship_digest.domain import JobOpening
-
 
 SECTION_PATTERN = re.compile(
     r"^##\s+(?P<heading>.+? Internship Roles)\s*$",
@@ -21,15 +21,22 @@ CATEGORY_NAMES = {
 
 
 class SimplifyTrackerParser:
-    def __init__(self, source_name: str) -> None:
-        self.source_name = source_name
-
-    def parse(self, markdown: str) -> list[JobOpening]:
+    def parse(
+        self,
+        content: str,
+        source_name: str,
+    ) -> list[JobOpening]:
         jobs: list[JobOpening] = []
 
-        for heading, section_html in self._iter_sections(markdown):
+        for heading, section_html in self._iter_sections(content):
             category = self._category_from_heading(heading)
-            jobs.extend(self._parse_table(section_html, category))
+            jobs.extend(
+                self._parse_table(
+                    section_html=section_html,
+                    category=category,
+                    source_name=source_name,
+                )
+            )
 
         return jobs
 
@@ -49,11 +56,12 @@ class SimplifyTrackerParser:
         self,
         section_html: str,
         category: str,
+        source_name: str,
     ) -> list[JobOpening]:
         soup = BeautifulSoup(section_html, "html.parser")
         table = soup.find("table")
 
-        if table is None:
+        if not isinstance(table, Tag):
             return []
 
         jobs: list[JobOpening] = []
@@ -86,7 +94,7 @@ class SimplifyTrackerParser:
                     title=title,
                     location=location,
                     url=application_url,
-                    source=self.source_name,
+                    source=source_name,
                     category=category,
                     age=age,
                 )
@@ -106,27 +114,36 @@ class SimplifyTrackerParser:
 
         company_link = cell.find("a")
 
-        if company_link is not None:
-            company = company_link.get_text(" ", strip=True)
-        else:
-            company = text
+        company = (
+            company_link.get_text(" ", strip=True)
+            if company_link is not None
+            else text
+        )
 
         company = company.removeprefix("🔥").strip()
 
         return company or None
 
     @staticmethod
-    def _extract_application_url(cell: Tag) -> str | None:
-        links = [str(link["href"]) for link in cell.find_all("a", href=True)]
+    def _extract_application_url(cell: Tag) -> HttpUrl | None:
+        links = [
+            str(link["href"])
+            for link in cell.find_all("a", href=True)
+        ]
 
         if not links:
             return None
 
-        for link in links:
-            if "simplify.jobs/p/" not in link:
-                return link
+        selected_url = next(
+            (
+                link
+                for link in links
+                if "simplify.jobs/p/" not in link
+            ),
+            links[0],
+        )
 
-        return links[0]
+        return HttpUrl(selected_url)
 
     @staticmethod
     def _clean_text(cell: Tag) -> str:
