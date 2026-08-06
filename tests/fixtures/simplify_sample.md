@@ -16,7 +16,9 @@
 <td>Software Engineer Intern</td>
 <td>San Jose, CA</td>
 <td>
-  <a href="https://careers.example.com/tiktok-swe">Apply</a>
+  <a href="https://careers.example.com/tiktok-swe?utm_source=Simplify&ref=Simplify">
+  Apply
+  </a>
   <a href="https://simplify.jobs/p/example-one">Simplify</a>
 </td>
 <td>0d</td>

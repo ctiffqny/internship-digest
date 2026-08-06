@@ -8,6 +8,7 @@ from internship_digest.domain import JobOpening
 from internship_digest.sources.github import GitHubTrackerClient
 from internship_digest.sources.parser_registry import ParserRegistry
 from internship_digest.storage.sqlite import SQLiteJobRepository
+from internship_digest.utils import normalize_url
 
 SAMPLE_LIMIT = 10
 
@@ -24,7 +25,7 @@ def print_job(job: JobOpening) -> None:
     print(f"  Location: {job.location or 'Not provided'}")
     print(f"  Category: {job.category or 'Uncategorized'}")
     print(f"  Age: {job.age or 'Unknown'}")
-    print(f"  Apply: {job.url}")
+    print(f"  Apply: {normalize_url(str(job.url))}")
     print()
 
 

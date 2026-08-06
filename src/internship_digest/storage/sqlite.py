@@ -2,54 +2,9 @@ import hashlib
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from internship_digest.domain import JobOpening
-
-TRACKING_QUERY_PARAMETERS = {
-    "utm_source",
-    "utm_medium",
-    "utm_campaign",
-    "utm_content",
-    "utm_term",
-    "ref",
-    "source",
-}
-
-
-def normalize_url(url: str) -> str:
-    """
-    Return a consistent version of a job URL.
-
-    Job links often include analytics parameters such as:
-
-        ?utm_source=github&utm_campaign=internships
-
-    Those parameters do not identify a different job. Removing them helps
-    us recognize that two slightly different-looking links point to the
-    same posting.
-    """
-
-    parts = urlsplit(url)
-
-    filtered_query_parameters = [
-        (key, value)
-        for key, value in parse_qsl(
-            parts.query,
-            keep_blank_values=True,
-        )
-        if key.lower() not in TRACKING_QUERY_PARAMETERS
-    ]
-
-    return urlunsplit(
-        (
-            parts.scheme.lower(),
-            parts.netloc.lower(),
-            parts.path.rstrip("/"),
-            urlencode(filtered_query_parameters),
-            "",
-        )
-    )
+from internship_digest.utils import normalize_url
 
 
 def create_job_fingerprint(job: JobOpening) -> str:

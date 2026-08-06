@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup, Tag
 from pydantic import HttpUrl
 
 from internship_digest.domain import JobOpening
+from internship_digest.utils import normalize_url
 
 SECTION_PATTERN = re.compile(
     r"^##\s+(?P<heading>.+? Internship Roles)\s*$",
@@ -93,7 +94,9 @@ class SimplifyTrackerParser:
                     company=company,
                     title=title,
                     location=location,
-                    url=application_url,
+                    url=HttpUrl(
+                        normalize_url(str(application_url))
+                    ),
                     source=source_name,
                     category=category,
                     age=age,

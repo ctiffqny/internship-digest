@@ -4,7 +4,6 @@ from internship_digest.domain import JobOpening
 from internship_digest.storage.sqlite import (
     SQLiteJobRepository,
     create_job_fingerprint,
-    normalize_url,
 )
 
 
@@ -27,14 +26,6 @@ def make_job(
         category="software_engineering",
         age="0d",
     )
-
-
-def test_normalize_url_removes_tracking_parameters() -> None:
-    url = "https://careers.example.com/jobs/123?utm_source=github&utm_campaign=summer"
-
-    normalized_url = normalize_url(url)
-
-    assert normalized_url == ("https://careers.example.com/jobs/123")
 
 
 def test_fingerprint_is_stable_for_equivalent_urls() -> None:
